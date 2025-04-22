@@ -19,6 +19,7 @@ import { api } from "../convex/_generated/api";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Id } from "../convex/_generated/dataModel";
+import { AppHeader } from "./_layout";
 
 // Define activity type
 interface Activity {
@@ -260,12 +261,7 @@ const SideMenu = ({
   const menuItems = [
     { icon: 'calendar-outline', title: 'Calendar', route: '/' },
     { icon: 'chatbox-ellipses-outline', title: 'Calendar Assistant', route: '/assistant' },
-    { icon: 'restaurant-outline', title: 'Food Tracking', route: '/food' },
-    { icon: 'fitness-outline', title: 'Workouts', route: '/workout' },
-    { icon: 'cash-outline', title: 'Personal Finance', route: '/finance' },
-    { icon: 'trophy-outline', title: 'Goals', route: '/goals' },
     { icon: 'checkbox-outline', title: 'To-Do List', route: '/todo' },
-    { icon: 'notifications-outline', title: 'Reminders', route: '/reminders' },
   ];
 
   return (
@@ -480,18 +476,11 @@ export default function Index() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f7f7f7" />
       
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <View>
-            <Ionicons name="menu" size={24} color="#333" />
-          </View>
-        </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>My Calendar</Text>
-          <Text style={styles.headerDate}>{formattedDate}</Text>
-        </View>
-        <View style={{ width: 24 }} /> {/* Empty view for spacing */}
-      </View>
+      <AppHeader 
+        title="My Calendar" 
+        subtitle={formattedDate}
+        onMenuPress={() => setMenuVisible(true)}
+      />
 
       {activities === undefined ? (
         <View style={styles.loadingContainer}>
