@@ -191,6 +191,70 @@ export const getByTimeRange = query({
   },
 });
 
+// Get activities for a specific date
+export const getByDate = query({
+  args: { 
+    date: v.union(v.number(), v.string()) // Accept timestamp or date string
+  },
+  handler: async (ctx, args) => {
+    // Convert date to Date object
+    let selectedDate: Date;
+    
+    if (typeof args.date === "string") {
+      const parsed = chrono.parseDate(args.date);
+      if (!parsed) {
+        throw new Error(`Could not parse date: "${args.date}"`);
+      }
+      selectedDate = parsed;
+    } else {
+      selectedDate = new Date(args.date);
+    }
+    
+    // Set to start of day (midnight)
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    // Set to end of day (23:59:59.999)
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    // Get timestamp values for querying
+    const startTimestamp = startOfDay.getTime();
+    const endTimestamp = endOfDay.getTime();
+    
+    console.log(`Filtering activities for date: ${selectedDate.toDateString()}`);
+    console.log(`Start timestamp: ${startTimestamp}, End timestamp: ${endTimestamp}`);
+    
+    // Filter activities that occur on this date
+    // An activity is on this date if:
+    // 1. It starts on this date, OR
+    // 2. It ends on this date, OR
+    // 3. It spans across this date (starts before and ends after)
+    return await ctx.db
+      .query("activities")
+      .filter((q) => 
+        q.or(
+          // Starts on the selected date
+          q.and(
+            q.gte(q.field("startTime"), startTimestamp),
+            q.lte(q.field("startTime"), endTimestamp)
+          ),
+          // Ends on the selected date
+          q.and(
+            q.gte(q.field("endTime"), startTimestamp),
+            q.lte(q.field("endTime"), endTimestamp)
+          ),
+          // Spans across the selected date
+          q.and(
+            q.lt(q.field("startTime"), startTimestamp),
+            q.gt(q.field("endTime"), endTimestamp)
+          )
+        )
+      )
+      .collect();
+  },
+});
+
 // Update an activity
 export const update = mutation({
   args: {

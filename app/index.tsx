@@ -323,16 +323,31 @@ export default function Index() {
   const [menuVisible, setMenuVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   
-  // Get today's date for the header
-  const today = new Date();
-  const formattedDate = today.toLocaleDateString(undefined, { 
+  // Add state for selected date, initialize with current date
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  
+  // Get date for the header
+  const formattedDate = selectedDate.toLocaleDateString(undefined, { 
     weekday: 'long', 
     month: 'long', 
     day: 'numeric' 
   });
+
+  // Navigation functions for calendar dates
+  const goToPreviousDay = () => {
+    const prevDay = new Date(selectedDate);
+    prevDay.setDate(prevDay.getDate() - 1);
+    setSelectedDate(prevDay);
+  };
+
+  const goToNextDay = () => {
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    setSelectedDate(nextDay);
+  };
   
-  // Fetch activities from Convex
-  const activities = useQuery(api.activities.getAll);
+  // Fetch activities for the selected date from Convex
+  const activities = useQuery(api.activities.getByDate, { date: selectedDate.getTime() });
   const deleteActivity = useMutation(api.activities.remove);
 
   // Update current time every minute
@@ -481,6 +496,16 @@ export default function Index() {
         subtitle={formattedDate}
         onMenuPress={() => setMenuVisible(true)}
       />
+
+      <View style={styles.dateNavigation}>
+        <TouchableOpacity onPress={goToPreviousDay}>
+          <Ionicons name="chevron-back-outline" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerDate}>{formattedDate}</Text>
+        <TouchableOpacity onPress={goToNextDay}>
+          <Ionicons name="chevron-forward-outline" size={24} color="#333" />
+        </TouchableOpacity>
+      </View>
 
       {activities === undefined ? (
         <View style={styles.loadingContainer}>
@@ -868,5 +893,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 16,
     color: '#333',
+  },
+  dateNavigation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
 });

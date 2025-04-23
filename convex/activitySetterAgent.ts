@@ -1,4 +1,6 @@
 'use node'
+// NOTE: In Expo/React Native, use EXPO_PUBLIC_ prefixed vars injected at build time
+// (dotenv is not loaded in mobile runtime)
 
 import { api } from "./_generated/api";
 import { StateGraph } from "@langchain/langgraph";
@@ -10,11 +12,9 @@ import { z } from "zod";
 import { Id } from "./_generated/dataModel";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { MessagesPlaceholder } from "@langchain/core/prompts";
-import { RunnableSequence } from "@langchain/core/runnables";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 import { AgentExecutor } from "langchain/agents";
 import { createOpenAIToolsAgent } from "langchain/agents";
-import * as chrono from 'chrono-node'; // Import chrono-node for natural language date parsing
 
 // Logger configuration
 const LOG_LEVELS = {
@@ -311,9 +311,12 @@ export async function createCalendarAgent() {
   logger('INFO', 'Creating calendar agent');
   try {
     // Initialize the LLM
+    const openAIKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+    if (!openAIKey) {
+      throw new Error("Missing EXPO_PUBLIC_OPENAI_API_KEY environment variable");
+    }
     const llm = new ChatOpenAI({
-      // Always load API key from environment variables, never hardcode
-      // If the API key is not available, the library will throw a proper error
+      openAIApiKey: openAIKey,
       modelName: "gpt-4-turbo",
       temperature: 0.7,
     });

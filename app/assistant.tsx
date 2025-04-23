@@ -178,6 +178,16 @@ export default function AssistantPage() {
     initAgent();
   }, []);
 
+  // Handle key press for the input field
+  const handleKeyPress = (e: any) => {
+    if (e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+      // Prevent default behavior (new line)
+      e.preventDefault();
+      // Send message when Enter is pressed without Shift key
+      handleSendMessage();
+    }
+  };
+
   // Scroll to bottom when messages change
   useEffect(() => {
     if (flatListRef.current) {
@@ -322,6 +332,7 @@ export default function AssistantPage() {
               multiline
               returnKeyType="send"
               onSubmitEditing={handleSendMessage}
+              onKeyPress={handleKeyPress}
               editable={!isLoading && !isAgentLoading}
             />
             <TouchableOpacity 
