@@ -305,6 +305,34 @@ const saveDailyScheduleTool = (client: ConvexHttpClient) => {
   });
 };
 
+// Tool for retrieving all long-term memory feedback
+const getMemoriesTool = (client: ConvexHttpClient) => new DynamicStructuredTool({
+  name: "get_memories",
+  description: "Retrieve all stored long-term user memory feedback",
+  schema: z.object({}),
+  func: async () => {
+    logger('DEBUG', 'Retrieving memories');
+    const memories = await client.query(api.activities.getAllMemories);
+    logger('INFO', 'Memories retrieved', { count: memories.length });
+    return JSON.stringify(memories, null, 2);
+  }
+});
+
+// Tool for storing user feedback into long-term memory
+const storeMemoryTool = (client: ConvexHttpClient) => new DynamicStructuredTool({
+  name: "store_memory",
+  description: "Store user feedback into long-term memory for future reference",
+  schema: z.object({
+    feedback: z.string().describe("User feedback text"),
+    timestamp: z.number().describe("Timestamp when feedback was received")
+  }),
+  func: async ({ feedback, timestamp }) => {
+    logger('DEBUG', 'Storing memory', { feedback, timestamp });
+    const id = await client.mutation(api.activities.storeMemory, { originalFeedback: feedback, feedback, timestamp });
+    logger('INFO', 'Memory stored', { id });
+    return `Memory stored with ID: ${id}`;
+  }
+});
 
 // Create and configure the agent
 export async function createCalendarAgent() {
@@ -327,12 +355,14 @@ export async function createCalendarAgent() {
 
     // Create tools for the agent
     const tools = [
+      getMemoriesTool(client),
       createActivityTool(client),
       updateActivityTool(client),
       deleteActivityTool(client),
       listActivitiesTool(client),
       findActivitiesByTimeTool(client),
       saveDailyScheduleTool(client),
+      storeMemoryTool(client),
     ];
     logger('DEBUG', 'Agent tools initialized', { toolCount: tools.length });
 
@@ -344,6 +374,8 @@ export async function createCalendarAgent() {
     const systemMessage = `You are a personal coach and assistant that can create, update, and delete activities. 
     
     You have access to the following tools:
+    - get_memories: Retrieve all stored long-term user memory feedback
+    - store_memory: Store user feedback for long-term memory
     - create_activity: Create a new activity with name, type, start time, and end time
     - update_activity: Update an existing activity's details
     - delete_activity: Remove an activity from the calendar
@@ -351,6 +383,17 @@ export async function createCalendarAgent() {
     - find_activities_by_time: Find activities within a time range
     - save_daily_schedule: Save a confirmed daily schedule with all activities for a specific day
 
+    Before suggesting a full schedule, retrieve and consider the user's stored preferences using the get_memories tool.
+    When the user provides feedback on your suggested schedule, use the store_memory tool to save relevant feedback for future planning.
+    When storing memory, simplify the user's original feedback into a concise, canonical form (e.g., "7AM is too early for a workout").
+
+    Your chain of thought should be as follows:
+    1. Note and add the activites strictly specified by the user to the schedule.
+    2. Add the activites that the user states they want to do, but does not specify the time for at times that suit the users activities. The user will want to work out at least once a day. 
+    3. If the user does not specify any activities, assume they want to work out and work or study or work the rest of the time. Their day should start at 9am and end at 10pm.
+    4. Make sure to not plan activites that overlap. Do not leave more than 30 minutes between activities.
+
+    When receving feedback on the suggested schedule, make sure to delete all activities from the prevoius suggestion in order to avoid duplicates. 
     HANDLING DATES: 
     You can use natural language or formatted dates directly in your tools. The backend will handle parsing dates like "tomorrow at 3pm", "next Monday at 10am", or "April 23, 2025".
 

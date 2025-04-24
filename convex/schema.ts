@@ -22,4 +22,10 @@ export default defineSchema({
       })
     ),
   }),
+  // Add memory table for long-term user feedback
+  memories: defineTable({
+    originalFeedback: v.string(),   // Original user feedback text
+    feedback: v.string(),           // Simplified canonical feedback
+    timestamp: v.number(),          // When the feedback was stored
+  }),
 });

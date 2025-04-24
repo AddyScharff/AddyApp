@@ -309,8 +309,13 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("activities") },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
-    return args.id;
+    try {
+      await ctx.db.delete(args.id);
+      return args.id;
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      throw new Error("Failed to delete activity. Invalid ID?");
+    }
   },
 });
 
@@ -461,4 +466,28 @@ export const deleteDailySchedule = mutation({
     await ctx.db.delete(args.id);
     return args.id;
   },
+});
+
+// Store long-term memory feedback
+export const storeMemory = mutation({
+  args: {
+    originalFeedback: v.string(),  // User's raw feedback
+    feedback: v.string(),          // Simplified canonical feedback
+    timestamp: v.number(),         // When feedback was received
+  },
+  handler: async (ctx, args) => {
+    const id = await ctx.db.insert("memories", {
+      originalFeedback: args.originalFeedback,
+      feedback: args.feedback,
+      timestamp: args.timestamp,
+    });
+    return id;
+  }
+});
+
+// Retrieve all memories
+export const getAllMemories = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("memories").collect();
+  }
 });
